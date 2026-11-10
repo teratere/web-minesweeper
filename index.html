@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>マインスイーパー | Apps Hub</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Noto+Sans+JP:wght@500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'sans-serif'],
+            digital: ['"Chakra Petch"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    /* 3Dベベル風クラシックボタン質感 */
+    .cell-bevel-up {
+      box-shadow: inset 2px 2px 0px rgba(255, 255, 255, 0.9),
+                  inset -2px -2px 0px rgba(100, 116, 139, 0.4);
+    }
+    .cell-bevel-down {
+      box-shadow: inset 1.5px 1.5px 2px rgba(0, 0, 0, 0.15);
+    }
+    .inset-frame {
+      box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.15),
+                  inset -1px -1px 0px rgba(255, 255, 255, 0.8);
+    }
+    /* 盤面横スクロールバー */
+    .custom-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* マウス（PC）環境では切り替えボタンを非表示、タッチ端末のみ表示 */
+    @media (hover: hover) and (pointer: fine) {
+      .touch-only-control {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col justify-between selection:bg-slate-800 selection:text-white">
+
+  <!-- ================= 統一ヘッダー ================= -->
+  <header class="w-full bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="../" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors py-1.5 px-2.5 rounded-lg hover:bg-slate-100">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Apps Hub</span>
+      </a>
+
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-500 text-xs">
+          <i class="fa-solid fa-bomb"></i>
+        </div>
+        <h1 class="text-sm font-extrabold tracking-tight text-slate-800">マインスイーパー</h1>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="sound-toggle-btn" onclick="toggleSound()" class="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center text-xs hover:bg-slate-100 transition-colors" title="効果音切替">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-emerald-600"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= メインコンテンツ ================= -->
+  <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col items-center gap-4">
+
+    <!-- コントロールバー（難易度・スマホ用補助モード） -->
+    <div class="w-full max-w-xl flex flex-wrap items-center justify-between gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <!-- 難易度ピッカー -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <button onclick="setDifficulty('easy')" id="diff-easy" class="px-2.5 py-1 rounded-lg transition-all bg-white text-indigo-600 shadow-xs">初級</button>
+        <button onclick="setDifficulty('medium')" id="diff-medium" class="px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-800">中級</button>
+        <button onclick="setDifficulty('hard')" id="diff-hard" class="px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-800">上級</button>
+        <button onclick="openCustomModal()" id="diff-custom" class="px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-800">カスタム</button>
+      </div>
+
+      <!-- スマホ専用：操作切り替えボタン（PC環境では自動非表示） -->
+      <button id="mode-toggle-btn" onclick="toggleMobileMode()" class="touch-only-control flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 active:scale-95 transition">
+        <i id="mode-icon" class="fa-solid fa-person-digging"></i>
+        <span id="mode-label">掘るモード</span>
+      </button>
+    </div>
+
+    <!-- ゲーム本体コンテナ -->
+    <div class="w-full max-w-xl bg-slate-200 p-4 rounded-3xl border border-slate-300 shadow-md flex flex-col items-center">
+      
+      <!-- ダッシュボード（地雷残数・笑顔顔・タイマー） -->
+      <div class="w-full bg-slate-300 inset-frame p-3 rounded-2xl flex items-center justify-between mb-4 border border-slate-300">
+        <!-- 残り地雷カウンター -->
+        <div class="bg-black text-rose-500 font-digital text-2xl tracking-widest px-3 py-1 rounded-lg shadow-inner border border-slate-700 min-w-[70px] text-center" id="mine-counter">
+          010
+        </div>
+
+        <!-- フェイスリセットボタン -->
+        <button id="face-btn" onclick="startNewGame()" class="w-11 h-11 bg-amber-300 hover:bg-amber-400 active:scale-90 border-2 border-amber-500 rounded-full flex items-center justify-center text-slate-800 text-xl shadow cell-bevel-up transition-transform">
+          <i id="face-icon" class="fa-solid fa-face-smile"></i>
+        </button>
+
+        <!-- タイマーカウンター -->
+        <div class="bg-black text-rose-500 font-digital text-2xl tracking-widest px-3 py-1 rounded-lg shadow-inner border border-slate-700 min-w-[70px] text-center" id="timer-display">
+          000
+        </div>
+      </div>
+
+      <!-- ボードスクロール外枠 -->
+      <div class="w-full overflow-x-auto custom-scroll pb-2 flex justify-center">
+        <!-- 盤面グリッド -->
+        <div id="mine-board" class="bg-slate-300 inset-frame p-2 rounded-xl inline-grid gap-1 border border-slate-300 select-none">
+          <!-- JSでセル生成 -->
+        </div>
+      </div>
+
+      <!-- 操作ヒント＆ベストスコア -->
+      <div class="w-full mt-3 pt-2 border-t border-slate-300 flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+        <span id="best-score-text"><i class="fa-solid fa-trophy text-amber-500 mr-1"></i>ベスト: - 秒</span>
+        <span class="hidden sm:inline">PC: 右クリックで旗 / 開封済み数字クリックで一括オープン</span>
+        <span class="sm:hidden">タップで掘る / 長押しで旗立て</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= フッター (Apps Hub 個別アプリ 正式共通規格) ================= -->
+  <footer class="mt-12 py-6 text-center border-t border-slate-200">
+    <div class="max-w-4xl mx-auto px-4">
+      <p class="text-[11px] text-slate-400">
+        ※個人開発プロトタイプにつき無保証・自己責任にてご利用ください（データは端末内完結・サポート対象外）
+      </p>
+    </div>
+  </footer>
+
+  <!-- カスタム難易度モーダル -->
+  <div id="custom-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-xs shadow-xl border border-slate-200">
+      <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+        <i class="fa-solid fa-sliders text-indigo-600"></i> カスタム盤面設定
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">横マス数 (8〜30)</label>
+          <input type="number" id="custom-cols" min="8" max="30" value="9" class="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">縦マス数 (8〜24)</label>
+          <input type="number" id="custom-rows" min="8" max="24" value="9" class="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">地雷数 (1〜最大マス数-9)</label>
+          <input type="number" id="custom-mines" min="1" max="999" value="10" class="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-400 outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeCustomModal()" class="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg font-bold">キャンセル</button>
+        <button onclick="applyCustomDifficulty()" class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">決定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= スクリプト ================= -->
+  <script>
+    // --- 音声エンジン (Web Audio API) ---
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playDig() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.05);
+      }
+      playFlag() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }
+      playExplode() {
+        if (this.muted) return;
+        this.init();
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.4);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.6, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+      }
+      playWin() {
+        if (this.muted) return;
+        this.init();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.1);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.1);
+          osc.stop(this.ctx.currentTime + idx * 0.1 + 0.35);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    function toggleSound() {
+      sound.muted = !sound.muted;
+      const icon = document.getElementById('sound-icon');
+      if (sound.muted) {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+      } else {
+        icon.className = 'fa-solid fa-volume-high text-emerald-600';
+      }
+    }
+
+    // --- ゲーム設定・状態 ---
+    const PRESETS = {
+      easy: { cols: 9, rows: 9, mines: 10 },
+      medium: { cols: 16, rows: 16, mines: 40 },
+      hard: { cols: 30, rows: 16, mines: 99 },
+    };
+
+    let currentDifficulty = 'easy';
+    let config = { ...PRESETS.easy };
+
+    let grid = [];
+    let isFirstClick = true;
+    let isGameOver = false;
+    let isGameWon = false;
+    let timer = 0;
+    let timerInterval = null;
+    let remainingMines = 0;
+    let mobileMode = 'dig'; // 'dig' または 'flag'
+
+    const boardEl = document.getElementById('mine-board');
+    const mineCounterEl = document.getElementById('mine-counter');
+    const timerEl = document.getElementById('timer-display');
+    const faceIconEl = document.getElementById('face-icon');
+    const bestScoreEl = document.getElementById('best-score-text');
+
+    const NUMBER_COLORS = [
+      '',
+      'text-blue-600',
+      'text-emerald-600',
+      'text-rose-600',
+      'text-indigo-800',
+      'text-amber-800',
+      'text-teal-600',
+      'text-black',
+      'text-purple-700'
+    ];
+
+    function updateBestScoreDisplay() {
+      const best = localStorage.getItem(`minesweeper_best_${currentDifficulty}`);
+      if (best) {
+        bestScoreEl.innerHTML = `<i class="fa-solid fa-trophy text-amber-500 mr-1"></i>ベスト: ${best}秒`;
+      } else {
+        bestScoreEl.innerHTML = `<i class="fa-solid fa-trophy text-slate-300 mr-1"></i>ベスト: - 秒`;
+      }
+    }
+
+    function setDifficulty(diff) {
+      currentDifficulty = diff;
+      config = { ...PRESETS[diff] };
+      ['easy', 'medium', 'hard', 'custom'].forEach(d => {
+        const btn = document.getElementById(`diff-${d}`);
+        if (d === diff) {
+          btn.className = 'px-2.5 py-1 rounded-lg transition-all bg-white text-indigo-600 shadow-xs';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-800';
+        }
+      });
+      updateBestScoreDisplay();
+      startNewGame();
+    }
+
+    function toggleMobileMode() {
+      mobileMode = (mobileMode === 'dig') ? 'flag' : 'dig';
+      const btn = document.getElementById('mode-toggle-btn');
+      const icon = document.getElementById('mode-icon');
+      const label = document.getElementById('mode-label');
+
+      if (mobileMode === 'flag') {
+        btn.className = 'touch-only-control flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 active:scale-95 transition';
+        icon.className = 'fa-solid fa-flag';
+        label.textContent = '旗立てモード';
+      } else {
+        btn.className = 'touch-only-control flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 active:scale-95 transition';
+        icon.className = 'fa-solid fa-person-digging';
+        label.textContent = '掘るモード';
+      }
+    }
+
+    // --- ゲームの初期化・開始 ---
+    function startNewGame() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timer = 0;
+      isFirstClick = true;
+      isGameOver = false;
+      isGameWon = false;
+      remainingMines = config.mines;
+
+      mineCounterEl.textContent = String(Math.max(0, remainingMines)).padStart(3, '0');
+      timerEl.textContent = '000';
+      faceIconEl.className = 'fa-solid fa-face-smile';
+
+      grid = [];
+      for (let r = 0; r < config.rows; r++) {
+        const row = [];
+        for (let c = 0; c < config.cols; c++) {
+          row.push({
+            r, c,
+            isMine: false,
+            isOpen: false,
+            isFlagged: false,
+            neighborCount: 0,
+            element: null
+          });
+        }
+        grid.push(row);
+      }
+
+      renderBoard();
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      boardEl.style.gridTemplateColumns = `repeat(${config.cols}, minmax(0, 1fr))`;
+
+      const cellSizeClass = config.cols > 16 ? 'w-6 h-6 text-xs' : 'w-7 h-7 sm:w-8 sm:h-8 text-sm';
+
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          const cell = grid[r][c];
+          const div = document.createElement('div');
+          div.className = `${cellSizeClass} bg-slate-200 cell-bevel-up rounded-sm flex items-center justify-center font-bold cursor-pointer transition-colors active:cell-bevel-down`;
+          
+          let longPressTimer = null;
+          let isTouchMove = false;
+
+          div.addEventListener('touchstart', (e) => {
+            isTouchMove = false;
+            longPressTimer = setTimeout(() => {
+              toggleFlag(cell);
+              if (navigator.vibrate) navigator.vibrate(40);
+              longPressTimer = null;
+            }, 320);
+          }, { passive: true });
+
+          div.addEventListener('touchmove', () => {
+            isTouchMove = true;
+            if (longPressTimer) clearTimeout(longPressTimer);
+          }, { passive: true });
+
+          div.addEventListener('touchend', (e) => {
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              if (!isTouchMove) {
+                e.preventDefault();
+                handleCellTouch(cell);
+              }
+            }
+          });
+
+          div.addEventListener('click', () => {
+            handleCellClick(cell);
+          });
+
+          div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            toggleFlag(cell);
+          });
+
+          cell.element = div;
+          boardEl.appendChild(div);
+        }
+      }
+    }
+
+    function handleCellTouch(cell) {
+      if (mobileMode === 'flag') {
+        toggleFlag(cell);
+      } else {
+        handleCellClick(cell);
+      }
+    }
+
+    function handleCellClick(cell) {
+      if (isGameOver || isGameWon) return;
+
+      if (cell.isOpen) {
+        chordOpen(cell);
+        return;
+      }
+
+      if (cell.isFlagged) return;
+
+      if (isFirstClick) {
+        initMines(cell.r, cell.c);
+        startTimer();
+        isFirstClick = false;
+      }
+
+      openCell(cell);
+    }
+
+    function initMines(firstR, firstC) {
+      const forbidden = new Set();
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = firstR + dr;
+          const nc = firstC + dc;
+          if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+            forbidden.add(`${nr},${nc}`);
+          }
+        }
+      }
+
+      let minesPlaced = 0;
+      while (minesPlaced < config.mines) {
+        const rr = Math.floor(Math.random() * config.rows);
+        const cc = Math.floor(Math.random() * config.cols);
+        const key = `${rr},${cc}`;
+
+        if (!forbidden.has(key) && !grid[rr][cc].isMine) {
+          grid[rr][cc].isMine = true;
+          minesPlaced++;
+        }
+      }
+
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          if (!grid[r][c].isMine) {
+            let count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+                  if (grid[nr][nc].isMine) count++;
+                }
+              }
+            }
+            grid[r][c].neighborCount = count;
+          }
+        }
+      }
+    }
+
+    function openCell(cell) {
+      if (cell.isOpen || cell.isFlagged) return;
+
+      cell.isOpen = true;
+      const el = cell.element;
+      el.classList.remove('cell-bevel-up', 'bg-slate-200');
+      el.classList.add('cell-bevel-down', 'bg-slate-100');
+
+      if (cell.isMine) {
+        triggerGameOver(cell);
+        return;
+      }
+
+      sound.playDig();
+
+      if (cell.neighborCount > 0) {
+        el.textContent = cell.neighborCount;
+        el.classList.add(NUMBER_COLORS[cell.neighborCount]);
+      } else {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const nr = cell.r + dr;
+            const nc = cell.c + dc;
+            if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+              const neighbor = grid[nr][nc];
+              if (!neighbor.isOpen && !neighbor.isFlagged) {
+                openCell(neighbor);
+              }
+            }
+          }
+        }
+      }
+
+      checkWinCondition();
+    }
+
+    function chordOpen(cell) {
+      if (!cell.isOpen || cell.neighborCount === 0) return;
+
+      let flagCount = 0;
+      const neighbors = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = cell.r + dr;
+          const nc = cell.c + dc;
+          if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+            const n = grid[nr][nc];
+            neighbors.push(n);
+            if (n.isFlagged) flagCount++;
+          }
+        }
+      }
+
+      if (flagCount === cell.neighborCount) {
+        neighbors.forEach(n => {
+          if (!n.isOpen && !n.isFlagged) {
+            openCell(n);
+          }
+        });
+      }
+    }
+
+    function toggleFlag(cell) {
+      if (cell.isOpen || isGameOver || isGameWon) return;
+
+      cell.isFlagged = !cell.isFlagged;
+      const el = cell.element;
+
+      if (cell.isFlagged) {
+        el.innerHTML = '<i class="fa-solid fa-flag text-rose-500 text-xs"></i>';
+        remainingMines--;
+        sound.playFlag();
+      } else {
+        el.innerHTML = '';
+        remainingMines++;
+      }
+
+      mineCounterEl.textContent = String(Math.max(-99, remainingMines)).padStart(3, '0');
+    }
+
+    function triggerGameOver(hitCell) {
+      isGameOver = true;
+      clearInterval(timerInterval);
+      sound.playExplode();
+      faceIconEl.className = 'fa-solid fa-face-dizzy text-rose-600';
+
+      hitCell.element.classList.add('bg-rose-500', 'text-white');
+      hitCell.element.innerHTML = '<i class="fa-solid fa-bomb animate-pulse"></i>';
+
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          const item = grid[r][c];
+          if (item !== hitCell) {
+            if (item.isMine && !item.isFlagged) {
+              item.element.classList.remove('cell-bevel-up');
+              item.element.classList.add('cell-bevel-down', 'bg-slate-100');
+              item.element.innerHTML = '<i class="fa-solid fa-bomb text-slate-700 text-xs"></i>';
+            } else if (!item.isMine && item.isFlagged) {
+              item.element.innerHTML = '<i class="fa-solid fa-xmark text-rose-600 text-xs"></i>';
+            }
+          }
+        }
+      }
+    }
+
+    function checkWinCondition() {
+      let unOpenedSafeCells = 0;
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          const item = grid[r][c];
+          if (!item.isMine && !item.isOpen) {
+            unOpenedSafeCells++;
+          }
+        }
+      }
+
+      if (unOpenedSafeCells === 0) {
+        isGameWon = true;
+        clearInterval(timerInterval);
+        sound.playWin();
+        faceIconEl.className = 'fa-solid fa-face-grin-stars text-amber-500';
+        mineCounterEl.textContent = '000';
+
+        for (let r = 0; r < config.rows; r++) {
+          for (let c = 0; c < config.cols; c++) {
+            const item = grid[r][c];
+            if (item.isMine && !item.isFlagged) {
+              item.isFlagged = true;
+              item.element.innerHTML = '<i class="fa-solid fa-flag text-rose-500 text-xs"></i>';
+            }
+          }
+        }
+
+        const savedBest = localStorage.getItem(`minesweeper_best_${currentDifficulty}`);
+        if (!savedBest || timer < parseInt(savedBest, 10)) {
+          localStorage.setItem(`minesweeper_best_${currentDifficulty}`, timer);
+          updateBestScoreDisplay();
+        }
+      }
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timer++;
+        if (timer > 999) timer = 999;
+        timerEl.textContent = String(timer).padStart(3, '0');
+      }, 1000);
+    }
+
+    // --- カスタムモーダル ---
+    function openCustomModal() {
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+    function closeCustomModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+    function applyCustomDifficulty() {
+      const c = parseInt(document.getElementById('custom-cols').value, 10) || 9;
+      const r = parseInt(document.getElementById('custom-rows').value, 10) || 9;
+      let m = parseInt(document.getElementById('custom-mines').value, 10) || 10;
+
+      const cols = Math.min(30, Math.max(8, c));
+      const rows = Math.min(24, Math.max(8, r));
+      const maxMines = (cols * rows) - 9;
+      m = Math.min(maxMines, Math.max(1, m));
+
+      config = { cols, rows, mines: m };
+      currentDifficulty = 'custom';
+
+      ['easy', 'medium', 'hard'].forEach(d => {
+        document.getElementById(`diff-${d}`).className = 'px-2.5 py-1 rounded-lg transition-all text-slate-500 hover:text-slate-800';
+      });
+      document.getElementById('diff-custom').className = 'px-2.5 py-1 rounded-lg transition-all bg-white text-indigo-600 shadow-xs';
+
+      closeCustomModal();
+      updateBestScoreDisplay();
+      startNewGame();
+    }
+
+    // 初期化実行
+    updateBestScoreDisplay();
+    startNewGame();
+  </script>
+</body>
+</html>
