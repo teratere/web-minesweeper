@@ -1,2 +1,66 @@
-# web-minesweeper
-A classic, trademark-free Minesweeper web game with guaranteed first-click safety, custom board settings, chord-opening, Web Audio API sound effects, and local high scores.
+# 💣 Web Minesweeper (地雷探索パズル)
+
+論理的思考で地雷の位置を暴き出す、往年の名作パズルゲームのシングルファイルWebアプリケーションです。  
+他社の固有アセットや商標に依存しないオープン設計（Font Awesome ＆ Tailwind CSS による独自UI描画）を採用し、PC・スマートフォン双方で快適にプレイできます。
+
+> **🚀 Live Demo:**  
+> ブラウザで今すぐ遊べる公開版はこちら 👉 **[https://selfup.net/minesweeper/](https://selfup.net/minesweeper/)**
+
+---
+
+## 🌟 主な機能 (Features)
+
+### 1. 初手安全保証（100% Mine-Free First Click）
+- 最初にクリック（タップ）したマスとその周囲8マスには絶対に地雷が配置されない安全ロジックを実装。初手からいきなり地雷を踏んで自爆することなく、必ず「0」の連鎖オープンから快適にスタートできます。
+
+### 2. 多彩な難易度プリセット ＆ カスタム盤面
+- **初級:** 9×9マス / 地雷10個
+- **中級:** 16×16マス / 地雷40個
+- **上級:** 30×16マス / 地雷99個
+- **カスタム:** 縦横のマス数（最大30×24）と地雷数を自由にカスタマイズ可能。
+
+### 3. PC・スマートフォン両対応の快適な操作性
+- **PC操作:**
+  - 左クリック: マスを掘る（開ける）
+  - 右クリック: 旗（フラグ）の設置・解除
+  - オープン済み数字マスをクリック: コードオープン（周囲の旗の数が一致している場合、未開封マスを一括オープン）
+- **スマートフォン操作:**
+  - タップで掘る / 約0.3秒の長押しで旗立て（触覚微振動フィードバック対応）
+  - タッチ端末時のみ「掘る ⇄ 旗立て」切り替えスイッチを画面上に自動表示
+
+### 4. Web Audio API によるプロシージャル効果音
+- 外部音声ファイルを一切読み込まず、ブラウザ内のオシレーターでマス掘り音、旗立て音、爆発音、クリアファンファーレを動的合成（消音トグル付き）。
+
+### 5. ベストタイム自動記録（LocalStorage）
+- 難易度ごとに自己ベストクリアタイム（秒）を端末内に自動保存。
+
+---
+
+## 🛠 開発について (About)
+
+このプロジェクトは、**生成AI（Gemini）を活用したバイブコーディング（対話型プログラミング）**によって制作されたシングルファイルWebアプリケーションです。
+
+- **企画・仕様設計・ディレクション:** teratere
+- **コード生成・実装:** Gemini
+- **構成技術:** HTML5 / Tailwind CSS (CDN) / Vanilla JavaScript / Web Audio API / FontAwesome
+
+---
+
+## 🔗 関連リンク (Links & Related Apps)
+
+- 🚀 **Web App (Live):** [https://selfup.net/minesweeper/](https://selfup.net/minesweeper/)
+- 🏠 **Apps Hub:** [https://selfup.net/](https://selfup.net/) （公開Webツール・アプリ一覧）
+
+---
+
+## ⚠️ 免責事項 (Disclaimer)
+
+- 本ゲームは個人がAIを活用して実験・学習目的で制作したプロトタイプです。
+- 動作の正確性、完全性、安全性等についてはいかなる保証もいたしかねます。本ツールの利用により生じた直接・間接の損害について、開発者は一切の責任を負いません（すべて自己責任にてご利用ください）。
+- 入力・プレイデータはお使いの端末（ブラウザのlocalStorage等）にのみ保持され、外部サーバーへ送信されることはありません。
+
+---
+
+## 📄 ライセンス (License)
+
+[MIT License](LICENSE)
