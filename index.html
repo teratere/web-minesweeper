@@ -112,7 +112,7 @@
     <!-- ゲーム本体コンテナ -->
     <div class="w-full max-w-xl bg-slate-200 p-4 rounded-3xl border border-slate-300 shadow-md flex flex-col items-center">
       
-      <!-- ダッシュボード（地雷残数・笑顔顔・タイマー） -->
+      <!-- ダッシュボード（地雷残数・リセットフェイス・タイマー） -->
       <div class="w-full bg-slate-300 inset-frame p-3 rounded-2xl flex items-center justify-between mb-4 border border-slate-300">
         <!-- 残り地雷カウンター -->
         <div class="bg-black text-rose-500 font-digital text-2xl tracking-widest px-3 py-1 rounded-lg shadow-inner border border-slate-700 min-w-[70px] text-center" id="mine-counter">
@@ -120,7 +120,7 @@
         </div>
 
         <!-- フェイスリセットボタン -->
-        <button id="face-btn" onclick="startNewGame()" class="w-11 h-11 bg-amber-300 hover:bg-amber-400 active:scale-90 border-2 border-amber-500 rounded-full flex items-center justify-center text-slate-800 text-xl shadow cell-bevel-up transition-transform">
+        <button id="face-btn" onclick="startNewGame()" class="w-11 h-11 bg-amber-300 hover:bg-amber-400 active:scale-90 border-2 border-amber-500 rounded-full flex items-center justify-center text-slate-800 text-xl shadow cell-bevel-up transition-transform" title="リスタート">
           <i id="face-icon" class="fa-solid fa-face-smile"></i>
         </button>
 
@@ -138,11 +138,33 @@
         </div>
       </div>
 
-      <!-- 操作ヒント＆ベストスコア -->
+      <!-- ベストスコア表示 -->
       <div class="w-full mt-3 pt-2 border-t border-slate-300 flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
         <span id="best-score-text"><i class="fa-solid fa-trophy text-amber-500 mr-1"></i>ベスト: - 秒</span>
-        <span class="hidden sm:inline">PC: 右クリックで旗 / 開封済み数字クリックで一括オープン</span>
-        <span class="sm:hidden">タップで掘る / 長押しで旗立て</span>
+        <span class="text-slate-400">数字クリック: 周囲一括オープン</span>
+      </div>
+
+      <!-- PCトラックパッド・キーボード操作ガイド表示パネル -->
+      <div class="w-full mt-2 bg-slate-100/90 rounded-xl p-2.5 border border-slate-300/80 text-[11px] text-slate-600 space-y-1">
+        <div class="flex items-center justify-between font-bold text-slate-700 pb-1 border-b border-slate-200">
+          <span class="flex items-center gap-1.5"><i class="fa-regular fa-keyboard text-indigo-600"></i> 操作ガイド</span>
+          <span class="text-[10px] text-slate-400 font-normal">マウスなし・トラックパッド対応</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 pt-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono text-[10px] font-bold text-slate-700 shadow-2xs">クリック</span>
+            <span>マスを掘る（開ける）</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono text-[10px] font-bold text-slate-700 shadow-2xs">Space</span>
+            <span>または</span>
+            <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-mono text-[10px] font-bold text-slate-700 shadow-2xs">Shift+クリック</span>
+            <span class="text-rose-600 font-bold">旗を立てる</span>
+          </div>
+        </div>
+        <div class="text-[10px] text-slate-400 pt-0.5 border-t border-slate-200 sm:hidden">
+          ※スマホ: タップで掘る / 長押しで旗立て（または上の切替ボタン）
+        </div>
       </div>
     </div>
 
@@ -303,6 +325,7 @@
     let timerInterval = null;
     let remainingMines = 0;
     let mobileMode = 'dig'; // 'dig' または 'flag'
+    let hoveredCell = null; // 現在マウスカーソルが乗っているセル（Spaceキー用）
 
     const boardEl = document.getElementById('mine-board');
     const mineCounterEl = document.getElementById('mine-counter');
@@ -372,6 +395,7 @@
       isGameOver = false;
       isGameWon = false;
       remainingMines = config.mines;
+      hoveredCell = null;
 
       mineCounterEl.textContent = String(Math.max(0, remainingMines)).padStart(3, '0');
       timerEl.textContent = '000';
@@ -411,7 +435,16 @@
           let longPressTimer = null;
           let isTouchMove = false;
 
-          div.addEventListener('touchstart', (e) => {
+          // ホバー追跡（Spaceキーで旗を立てる対象）
+          div.addEventListener('mouseenter', () => {
+            hoveredCell = cell;
+          });
+          div.addEventListener('mouseleave', () => {
+            if (hoveredCell === cell) hoveredCell = null;
+          });
+
+          // タッチ操作（長押しで旗、短タップでモード依存アクション）
+          div.addEventListener('touchstart', () => {
             isTouchMove = false;
             longPressTimer = setTimeout(() => {
               toggleFlag(cell);
@@ -435,10 +468,17 @@
             }
           });
 
-          div.addEventListener('click', () => {
-            handleCellClick(cell);
+          // PC左クリック（Shiftキー同時押しなら旗立て）
+          div.addEventListener('click', (e) => {
+            if (e.shiftKey) {
+              e.preventDefault();
+              toggleFlag(cell);
+            } else {
+              handleCellClick(cell);
+            }
           });
 
+          // PC右クリック（旗）
           div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             toggleFlag(cell);
@@ -449,6 +489,17 @@
         }
       }
     }
+
+    // --- キーボード操作（Spaceキーで旗立て） ---
+    window.addEventListener('keydown', (e) => {
+      // Spaceキー押下時（かつブラウザのスクロールを抑制）
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (hoveredCell) {
+          toggleFlag(hoveredCell);
+        }
+      }
+    });
 
     function handleCellTouch(cell) {
       if (mobileMode === 'flag') {
